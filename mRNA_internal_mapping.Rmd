@@ -74,6 +74,6 @@ for (i in seq_len(nrow(df))) {
 match_results <- dplyr::bind_rows(matches)
 
 # Write to Excel
-writexl::write_xlsx(result, "mRNA_match_results.xlsx")
+writexl::write_xlsx(match_results, "mRNA_match_results.xlsx")
 ```
 
