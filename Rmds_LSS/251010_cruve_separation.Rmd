@@ -11,12 +11,14 @@ library(writexl)
 
 # Add the function for ppm calculation
 ppm = function(observed, theo){
-  if(abs((observed - theo) / theo * 10^6) > 10) {
+  if(abs((observed - theo) / theo * 10^6) > 50) {
     return(FALSE)
   } else {
     return(TRUE)
   }
 }
+
+ ppm(6444.867, 6444.5463)
 
 source("../Source/introduction.R")
 source("../Source/blind_seq.R")
@@ -29,10 +31,16 @@ options(scipen = 999)
 ```
 
 ```{r df_load}
-set_up("mRNA", "UUUUUUUUUUUUUUUUUUUU", "../Data/Pure_AD/NistmRNA_15min_1st_Mistake_251010_JYL.xlsx", "peptide", 24000, 0, 18)
+set_up("mRNA", "UUUUUUUUUUUUUUUUUUUUU", "../Data/Pure_AD/NistmRNA_15min_1st_Mistake_251010_JYL.xlsx", "peptide", 24000, 0, 30)
+
+#-61.95579
+#21.98176
+#56.92119
+
 plot_mass_rt(df, FALSE, 18)
 
-
+theo_3 = theo_3 %>% mutate(theoretical_mass = theoretical_mass + 21.98176)
+prophet_polyU = prophet(df, theo_3)
 
 df_layer_1 <- df %>%
   filter(
@@ -258,5 +266,48 @@ ggsave(
   height = 15,               
   dpi = 300                  
 )
+```
+
+```{r potential_sequence_searcher}
+#trying to generate mass for theoretical fragments
+bases = c("A", "U", "C", "G")
+
+
+rna_sequences = unlist(
+  lapply(1:4, function(n) apply(expand.grid(rep(list(bases), n)), 1, paste0, collapse = ""))
+)
+
+rna_sequences
+
+df_sequences = data.frame(sequence = rna_sequences, 
+                           stringsAsFactors = FALSE)
+
+#insert 20 Us
+df_sequences$sequence = paste0(strrep("U", 20), df_sequences$sequence)
+
+
+mass_C <- 305.0413
+mass_U <- 306.0253
+mass_A <- 329.0525
+mass_G <- 345.0474   
+
+
+count_C <- stringr::str_count(df_sequences$sequence, "C")
+count_U <- stringr::str_count(df_sequences$sequence, "U")
+count_A <- stringr::str_count(df_sequences$sequence, "A")
+count_G <- stringr::str_count(df_sequences$sequence, "G")
+
+
+df_sequences$theoretical_mass <- 
+  18.0150 +
+  mass_C * count_C +
+  mass_U * count_U +
+  mass_A * count_A +
+  mass_G * count_G
+
+df_sequences = df_sequences %>% rename(base_name = sequence) %>% mutate(n_position = 1)
+
+theoretical_prophet_poly_U = prophet(df, df_sequences)
+
 ```
 
